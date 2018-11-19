@@ -2,10 +2,9 @@
 from __future__ import absolute_import
 
 import octoprint.plugin
-from pprint import pprint
-from octoprint.server import printer, NO_CONTENT
+from octoprint.settings import settings
 import flask, json
-import os
+import os.path
 
 class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
     octoprint.plugin.SettingsPlugin,
@@ -15,7 +14,7 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
 
     printqueue = []
     selected_file = ""
-    uploads_dir = "/home/pi/.octoprint/uploads/"
+    uploads_dir = settings().getBaseFolder("uploads")
 
     # BluePrintPlugin (api requests)
     @octoprint.plugin.BlueprintPlugin.route("/addselectedfile", methods=["GET"])
@@ -41,7 +40,7 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
             for p in j:
                 self.printqueue += [p]
 
-        f = self.uploads_dir + self.printqueue[0]
+        f = os.path.join(self.uploads_dir, self.printqueue[0])
         self._logger.info("PQ: attempting to select and print file: " + f)
         self._printer.select_file(f, False, True)
         self.printqueue.pop(0)
@@ -75,16 +74,14 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
 
     # Event Handling
     def on_event(self, event, payload):
-        self._logger.info("on_event fired: " + event)
         if event == "FileSelected":
             self._plugin_manager.send_plugin_message(self._identifier, dict(message="file_selected",file=payload["path"]))
-            self._logger.info(payload)
             self.selected_file = payload["path"]
         if event == "PrinterStateChanged":
             state = self._printer.get_state_id()
-            self._logger.info("printer state: " + state)
             if state  == "OPERATIONAL" and len(self.printqueue) > 0:
-                self._printer.select_file(self.uploads_dir + self.printqueue[0], False, True)
+                self._logger.info("selecting next print from queue")
+                self._printer.select_file(os.path.join(self.uploads_dir, self.printqueue[0]), False, True)
                 self.printqueue.pop(0)
             if state == "OFFLINE" or state == "CANCELLING" or state == "CLOSED" or state == "ERROR" or state == "CLOSED_WITH_ERROR":
                 self._logger.info("deleting print queue")
