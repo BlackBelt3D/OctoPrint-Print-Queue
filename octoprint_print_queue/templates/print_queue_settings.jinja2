@@ -1,0 +1,10 @@
+<h3>{{ _('Print Queue') }}</h3>
+<form class="form-horizontal">
+    <div class="control-group">
+        <label class="control-label">{{ _('After each print is completed, before the next print is started') }}</label>
+        <div class="controls">
+            <textarea rows="4" class="block" data-bind="value: settings.plugins.print_queue.bed_clear_script"></textarea>
+            <span class="help-inline">{{ _("This script needs to completely clear the print off the bed so that the printer is ready for the next print. Understand that if the bed isn't clear the hotend is going to crash into the previously printed object and quite possibly break your printer. It is highly recommended that you put a pause command (M226, M600, etc.) in the script so you can inspect the bed before resuming and starting the next print.") }}</span>
+        </div>
+    </div>
+</form>

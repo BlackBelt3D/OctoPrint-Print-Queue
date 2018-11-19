@@ -7,8 +7,7 @@ from octoprint.server import printer, NO_CONTENT
 import flask, json
 import os
 
-class PrintQueuePlugin(octoprint.plugin.StartupPlugin,
-    octoprint.plugin.TemplatePlugin,
+class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
     octoprint.plugin.SettingsPlugin,
     octoprint.plugin.AssetPlugin,
     octoprint.plugin.BlueprintPlugin,
@@ -18,26 +17,9 @@ class PrintQueuePlugin(octoprint.plugin.StartupPlugin,
     selected_file = ""
     uploads_dir = "/home/pi/.octoprint/uploads/"
 
-# StartupPlugin
-    def on_after_startup(self):
-        self._print_queue_file_path = os.path.join(self.get_plugin_data_folder(), "print_queue.yaml")
-        self._configuration_dict = None
-        self._getConfigurationFile()
-
-# BluePrintPlugin (api requests)
-    @octoprint.plugin.BlueprintPlugin.route("/scriptget", methods=["GET"])
-    def getMaterialsData(self):
-        return flask.jsonify(self._getConfigurationFile())
-
-    @octoprint.plugin.BlueprintPlugin.route("/scriptset", methods=["POST"])
-    def setMaterialsData(self):
-        config = self._getConfigurationFile()
-        config["bed_clear_script"] = flask.request.values["bed_clear_script"];
-        self._writeConfigurationFile(config)
-        return flask.make_response("POST successful", 200)
-
+    # BluePrintPlugin (api requests)
     @octoprint.plugin.BlueprintPlugin.route("/addselectedfile", methods=["GET"])
-    def addSelectedFile(self):
+    def add_selected_file(self):
         self._logger.info("PQ: adding selected file: " + self.selected_file)
         self._printer.unselect_file()
         f = self.selected_file
@@ -45,14 +27,14 @@ class PrintQueuePlugin(octoprint.plugin.StartupPlugin,
         return flask.jsonify(filename=f)
 
     @octoprint.plugin.BlueprintPlugin.route("/clearselectedfile", methods=["POST"])
-    def clearSelectedFile(self):
+    def clear_selected_file(self):
         self._logger.info("PQ: clearing selected file")
         self._printer.unselect_file()
         self.selected_file = ""
         return flask.make_response("POST successful", 200)
 
     @octoprint.plugin.BlueprintPlugin.route("/printcontinuously", methods=["POST"])
-    def printContinuously(self):
+    def print_continuously(self):
         self.printqueue = []
         for v in flask.request.form:
             j = json.loads(v)
@@ -65,55 +47,27 @@ class PrintQueuePlugin(octoprint.plugin.StartupPlugin,
         self.printqueue.pop(0)
         return flask.make_response("POST successful", 200)
 
-# TemplatePlugin
-    def get_template_vars(self):
-        return dict(
-            bed_temp=self._settings.get(["bed_temp"]),
-            print_temp=self._settings.get(["print_temp"]))
+    # SettingPlugin
+    def get_settings_defaults(self):
+        return dict(bed_clear_script="")
 
+    # TemplatePlugin
     def get_template_configs(self):
         return [
-            dict(type="settings", custom_bindings=False),
+            dict(type="settings", custom_bindings=False, template="print_queue_settings.jinja2"),
         ]
 
-# AssetPlugin
+    # AssetPlugin
     def get_assets(self):
         return dict(
             js=["js/print_queue.js"]
     )
 
-# Data Persistence
-    def _writeConfigurationFile(self, config):
-        try:
-            import yaml
-            from octoprint.util import atomic_write
-            with atomic_write(self._print_queue_file_path) as f:
-                yaml.safe_dump(config, stream=f, default_flow_style=False, indent="  ", allow_unicode=True)
-        except:
-            self._logger.info("PQ: error writing configuration file")
-        else:
-            self._configuration_dict = config
 
-    def _getConfigurationFile(self):
-        result_dict = None
-        if os.path.exists(self._print_queue_file_path):
-            with open(self._print_queue_file_path, "r") as f:
-                try:
-                    import yaml
-                    result_dict = yaml.safe_load(f)
-                except:
-                    self._logger.info("PQ: error loading configuration file")
-                else:
-                    if not result_dict:
-                        result_dict = dict()
-        else: 
-            result_dict = dict()
-        self._configuration_dict = result_dict
-        return result_dict
-
+    # Hooks
     def print_completion_script(self, comm, script_type, script_name, *args, **kwargs):
         if script_type == "gcode" and script_name == "afterPrintDone" and len(self.printqueue) > 0:
-            prefix = self._configuration_dict["bed_clear_script"]
+            prefix = self._settings.get(["bed_clear_script"])
             postfix = None
             return prefix, postfix
         else:
