@@ -11,52 +11,52 @@ $(function() {
 
         self.settings = parameters[0];
         self.bedClearScript = ko.observable();
-	self.queuedPrints = ko.observableArray([]);
+        self.queuedPrints = ko.observableArray([]);
 
-	self.createPrintQueueString = function() {
-	    let printList = [];
-	    for (var i = 0; i < self.queuedPrints().length; i++) {
-		let fileName = self.queuedPrints()[i]["fileName"];
-		let count = self.queuedPrints()[i]["printNumber"];
-	    	for (var j = 0; j < count; j++) {
-		    printList.push(fileName);
-		}
+        self.createPrintQueueString = function() {
+            let printList = [];
+            for (var i = 0; i < self.queuedPrints().length; i++) {
+            let fileName = self.queuedPrints()[i]["fileName"];
+            let count = self.queuedPrints()[i]["printNumber"];
+                for (var j = 0; j < count; j++) {
+                printList.push(fileName);
             }
-	    return printList;
-	}
+                }
+            return printList;
+        }
 
         self.printContinuously = function() {
-	    console.log(self.createPrintQueueString());
-	    $.ajax({
-	        url: "plugin/print_queue/printcontinuously",
-	        type: "POST",
-	        dataType: "json",
-	        headers: {
-	            "X-Api-Key":UI_API_KEY,
-	        },
-	        data: JSON.stringify(self.createPrintQueueString()),
-	        success: self.postResponse
-	    });
+            console.log(self.createPrintQueueString());
+            $.ajax({
+                url: "plugin/print_queue/printcontinuously",
+                type: "POST",
+                dataType: "json",
+                headers: {
+                    "X-Api-Key":UI_API_KEY,
+                },
+                data: JSON.stringify(self.createPrintQueueString()),
+                success: self.postResponse
+            });
         }
 
         self.changePrintNumber = function(data) {
-	    console.log(data);
+            console.log(data);
         }
 
         self.removeFile = function(file) {
-	    self.queuedPrints.remove(file);
+            self.queuedPrints.remove(file);
         }
 
         self.addSelectedFile = function() {
-	    $.ajax({
-	        url: "plugin/print_queue/addselectedfile",
-	        type: "GET",
-	        dataType: "json",
-	        headers: {
-		    "X-Api-Key":UI_API_KEY,
-	        },
-		success: self.addFileResponse
-	    });
+            $.ajax({
+                url: "plugin/print_queue/addselectedfile",
+                type: "GET",
+                dataType: "json",
+                headers: {
+                    "X-Api-Key":UI_API_KEY,
+                },
+                success: self.addFileResponse
+            });
         }
 
         self.clearSelectedFile = function() {
@@ -74,12 +74,12 @@ $(function() {
         self.addFileResponse = function(data) {
             console.log('PQ: add file success');
             console.log(data);
-	    let f = data["filename"]
-	    if (f) {
-                self.queuedPrints.push({fileName: f, printNumber: 1})
-	    } else {
-                self.queuedPrints.push({fileName: "", printNumber: 1})
-		}
+            let f = data["filename"]
+            if (f) {
+                    self.queuedPrints.push({fileName: f, printNumber: 1})
+            } else {
+                    self.queuedPrints.push({fileName: "", printNumber: 1})
+            }
         };
 
         self.requestData = function() {
@@ -101,8 +101,8 @@ $(function() {
                     "X-Api-Key":UI_API_KEY,
                 },
                 data: {
-                        bed_clear_script: bScript
-                    },
+                    bed_clear_script: bScript
+                },
                 success: self.postResponse
             });
         }
@@ -125,21 +125,21 @@ $(function() {
             self.requestData();
         }
 
-		self.onDataUpdaterPluginMessage = function(plugin, data) {
-			// if the "add file" field is blank and the user loads a new file
-			// put it's name into the text field
-			if (plugin == "print_queue" && data["message"] == "file_selected") {
-				let l = self.queuedPrints().length;
-				if (l > 0) {
-					let last = self.queuedPrints()[l - 1];
-            		console.log(last["fileName"]);
-					if (last["fileName"] == "") {
-						self.queuedPrints.replace(last, {fileName: data["file"], printNumber: last["printNumber"]})
-						self.clearSelectedFile();
-					}
-				}
-			}
-		}
+        self.onDataUpdaterPluginMessage = function(plugin, data) {
+            // if the "add file" field is blank and the user loads a new file
+            // put it's name into the text field
+            if (plugin == "print_queue" && data["message"] == "file_selected") {
+                let l = self.queuedPrints().length;
+                if (l > 0) {
+                    let last = self.queuedPrints()[l - 1];
+                    console.log(last["fileName"]);
+                    if (last["fileName"] == "") {
+                        self.queuedPrints.replace(last, {fileName: data["file"], printNumber: last["printNumber"]})
+                        self.clearSelectedFile();
+                    }
+                }
+            }
+        }
     }
 
     // This is how our plugin registers itself with the application, by adding some configuration
