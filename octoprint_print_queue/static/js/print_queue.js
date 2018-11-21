@@ -16,12 +16,12 @@ $(function() {
         self.createPrintQueueString = function() {
             let printList = [];
             for (var i = 0; i < self.queuedPrints().length; i++) {
-            let fileName = self.queuedPrints()[i]["fileName"];
-            let count = self.queuedPrints()[i]["printNumber"];
+                let fileName = self.queuedPrints()[i]["fileName"];
+                let count = self.queuedPrints()[i]["printNumber"];
                 for (var j = 0; j < count; j++) {
-                printList.push(fileName);
-            }
+                    printList.push(fileName);
                 }
+            }
             return printList;
         }
 
@@ -40,6 +40,7 @@ $(function() {
         }
 
         self.changePrintNumber = function(data) {
+            console.log('PQ: not yet implemented');
             console.log(data);
         }
 
@@ -81,49 +82,6 @@ $(function() {
                     self.queuedPrints.push({fileName: "", printNumber: 1})
             }
         };
-
-        self.requestData = function() {
-            $.ajax({
-                url: "plugin/print_queue/scriptget",
-                type: "GET",
-                dataType: "json",
-                success: self.fromResponse
-            });
-        };
-
-        self.postData = function(bScript) 
-        {
-            $.ajax({
-                url: "plugin/print_queue/scriptset",
-                type: "POST",
-                dataType: "json",
-                headers: {
-                    "X-Api-Key":UI_API_KEY,
-                },
-                data: {
-                    bed_clear_script: bScript
-                },
-                success: self.postResponse
-            });
-        }
-
-        self.postResponse = function() {
-            console.log('MSL: post success');
-        };
-
-        self.fromResponse = function(data) {
-            self.bedClearScript(data["bed_clear_script"])
-            console.log('Callback - data: ' + data["bed_clear_script"]);
-        };
-
-        self.update = function() {
-            console.log('posting bed clear script: ' + self.bedClearScript());
-            self.postData(self.bedClearScript());
-        }
-
-        self.onBeforeBinding = function() {
-            self.requestData();
-        }
 
         self.onDataUpdaterPluginMessage = function(plugin, data) {
             // if the "add file" field is blank and the user loads a new file
