@@ -9,9 +9,8 @@ $(function() {
     function PrintQueueViewModel(parameters) {
         var self = this;
 
-        self.settings = parameters[0];
-        self.bedClearScript = ko.observable();
         self.queuedPrints = ko.observableArray([]);
+        self.lastId = 0;
 
         self.createPrintQueueString = function() {
             let printList = [];
@@ -39,13 +38,27 @@ $(function() {
             });
         }
 
-        self.changePrintNumber = function(data) {
-            console.log('PQ: not yet implemented');
-            console.log(data);
+
+        self.moveJobUp = function(data) {
+            let currentIndex = self.queuedPrints.indexOf(data);
+            if (currentIndex > 0) {
+                let queueArray = self.queuedPrints();
+                self.queuedPrints.splice(currentIndex-1, 2, queueArray[currentIndex], queueArray[currentIndex - 1]);
+            }
+
         }
 
-        self.removeFile = function(file) {
-            self.queuedPrints.remove(file);
+        self.moveJobDown = function(data) {
+            let currentIndex = self.queuedPrints.indexOf(data);
+            if (currentIndex < self.queuedPrints().length - 1) {
+                let queueArray = self.queuedPrints();
+                self.queuedPrints.splice(currentIndex, 2, queueArray[currentIndex + 1], queueArray[currentIndex]);
+            }
+
+        }
+
+        self.removeJob = function(data) {
+            self.queuedPrints.remove(data);
         }
 
         self.addSelectedFile = function() {
@@ -77,9 +90,9 @@ $(function() {
             console.log(data);
             let f = data["filename"]
             if (f) {
-                    self.queuedPrints.push({fileName: f, printNumber: 1})
+                    self.queuedPrints.push({fileName: f, printNumber: 1, id: self.lastId++})
             } else {
-                    self.queuedPrints.push({fileName: "", printNumber: 1})
+                    self.queuedPrints.push({fileName: "", printNumber: 1, id: self.lastId++})
             }
         };
 
@@ -92,7 +105,7 @@ $(function() {
                     let last = self.queuedPrints()[l - 1];
                     console.log(last["fileName"]);
                     if (last["fileName"] == "") {
-                        self.queuedPrints.replace(last, {fileName: data["file"], printNumber: last["printNumber"]})
+                        self.queuedPrints.replace(last, {fileName: data["file"], printNumber: last["printNumber"], id: last["id"]})
                         self.clearSelectedFile();
                     }
                 }

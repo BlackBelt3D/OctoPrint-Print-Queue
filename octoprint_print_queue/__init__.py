@@ -59,7 +59,7 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
     # AssetPlugin
     def get_assets(self):
         return dict(
-            js=["js/print_queue.js"]
+            js=["js/jquery-ui.min.js", "js/knockout-sortable.js", "js/print_queue.js"]
     )
 
 
