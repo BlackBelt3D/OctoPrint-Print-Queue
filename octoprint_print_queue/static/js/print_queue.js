@@ -11,31 +11,81 @@ $(function() {
 
         self.queuedPrints = ko.observableArray([]);
         self.lastId = 0; // used to make each queued entry unique
-        self.cachedPrintQueueString = "";
+        self.flatPrintQueue = [];
 
-        self.queuedPrints.subscribe(function(changes){
-            let printQueString = self.createPrintQueueString();
-            if (printQueString != self.cachedPrintQueueString) {
-                self.cachedPrintQueueString = printQueString;
-                console.log(printQueString);
+        self.getPrintQueue = function() {
+            $.ajax({
+                url: "plugin/print_queue/queue",
+                type: "GET",
+                dataType: "json",
+                headers: {
+                    "X-Api-Key":UI_API_KEY,
+                },
+                success: function(data) {
+                    self.setPrintQueueFromData(data);
+                }
+            });
+        }
+        self.getPrintQueue();
+
+
+        self.setPrintQueueFromData = function(data) {
+            console.log('PQ: received queue: ', data);
+            self.queuedPrints = ko.observableArray([]);
+            self.lastId = 0;
+            let lastFileName = undefined;
+            for (let i in data.print_queue) {
+                fileName = data.print_queue[i];
+                if (fileName !== lastFileName) {
+                    lastFileName = fileName;
+                    self.queuedPrints.push({fileName: fileName, copies: 1, id: self.lastId++});
+                } else {
+                    let print = self.queuedPrints.pop();
+                    print.copies++;
+                    self.queuedPrints.push(print);
+                }
             }
-        });
+            self.flatPrintQueue = self.createFlatPrintQueue();
+        }
 
-        self.createPrintQueueString = function() {
+
+        self.createFlatPrintQueue = function() {
             let printList = [];
-            console.log(self.queuedPrints());
-            for (var i = 0; i < self.queuedPrints().length; i++) {
+            for (let i = 0; i < self.queuedPrints().length; i++) {
                 let fileName = self.queuedPrints()[i]["fileName"];
                 let count = self.queuedPrints()[i]["copies"];
-                for (var j = 0; j < count; j++) {
+                for (let j = 0; j < count; j++) {
                     printList.push(fileName);
                 }
             }
             return printList;
         }
 
+
+        self.checkPrintQueueChanges = function() {
+            console.log('PQ: check queue change');
+
+            let printQueue = self.createFlatPrintQueue();
+            if (printQueue != self.flatPrintQueue) {
+                self.flatPrintQueue = printQueue;
+                console.log(JSON.stringify(self.createFlatPrintQueue()));
+
+                $.ajax({
+                    url: "plugin/print_queue/queue",
+                    type: "POST",
+                    dataType: "json",
+                    headers: {
+                        "X-Api-Key":UI_API_KEY,
+                    },
+                    data: JSON.stringify(self.createFlatPrintQueue()),
+                    success: self.postResponse
+                });
+            }
+        }
+
+
         self.printContinuously = function() {
-            console.log(self.createPrintQueueString());
+            console.log(self.createFlatPrintQueue());
             $.ajax({
                 url: "plugin/print_queue/printcontinuously",
                 type: "POST",
@@ -43,7 +93,7 @@ $(function() {
                 headers: {
                     "X-Api-Key":UI_API_KEY,
                 },
-                data: JSON.stringify(self.createPrintQueueString()),
+                data: JSON.stringify(self.createFlatPrintQueue()),
                 success: self.postResponse
             });
         }
@@ -53,8 +103,9 @@ $(function() {
             if (currentIndex > 0) {
                 let queueArray = self.queuedPrints();
                 self.queuedPrints.splice(currentIndex-1, 2, queueArray[currentIndex], queueArray[currentIndex - 1]);
-            }
 
+                self.checkPrintQueueChanges();
+            }
         }
 
         self.moveJobDown = function(data) {
@@ -62,12 +113,14 @@ $(function() {
             if (currentIndex < self.queuedPrints().length - 1) {
                 let queueArray = self.queuedPrints();
                 self.queuedPrints.splice(currentIndex, 2, queueArray[currentIndex + 1], queueArray[currentIndex]);
-            }
 
+                self.checkPrintQueueChanges();
+            }
         }
 
         self.removeJob = function(data) {
             self.queuedPrints.remove(data);
+            self.checkPrintQueueChanges();
         }
 
         self.addSelectedFile = function() {
@@ -95,7 +148,7 @@ $(function() {
         }
 
         self.addFileResponse = function(data) {
-            console.log('PQ: add file success');
+            console.log('PQ: add file');
             console.log(data);
             let f = data["filename"]
             if (f) {
@@ -103,6 +156,7 @@ $(function() {
             } else {
                     self.queuedPrints.push({fileName: "", copies: 1, id: self.lastId++})
             }
+            self.checkPrintQueueChanges();
         };
 
         self.onDataUpdaterPluginMessage = function(plugin, data) {
