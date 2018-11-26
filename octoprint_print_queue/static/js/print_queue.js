@@ -10,13 +10,23 @@ $(function() {
         var self = this;
 
         self.queuedPrints = ko.observableArray([]);
-        self.lastId = 0;
+        self.lastId = 0; // used to make each queued entry unique
+        self.cachedPrintQueueString = "";
+
+        self.queuedPrints.subscribe(function(changes){
+            let printQueString = self.createPrintQueueString();
+            if (printQueString != self.cachedPrintQueueString) {
+                self.cachedPrintQueueString = printQueString;
+                console.log(printQueString);
+            }
+        });
 
         self.createPrintQueueString = function() {
             let printList = [];
+            console.log(self.queuedPrints());
             for (var i = 0; i < self.queuedPrints().length; i++) {
                 let fileName = self.queuedPrints()[i]["fileName"];
-                let count = self.queuedPrints()[i]["printNumber"];
+                let count = self.queuedPrints()[i]["copies"];
                 for (var j = 0; j < count; j++) {
                     printList.push(fileName);
                 }
@@ -37,7 +47,6 @@ $(function() {
                 success: self.postResponse
             });
         }
-
 
         self.moveJobUp = function(data) {
             let currentIndex = self.queuedPrints.indexOf(data);
@@ -90,9 +99,9 @@ $(function() {
             console.log(data);
             let f = data["filename"]
             if (f) {
-                    self.queuedPrints.push({fileName: f, printNumber: 1, id: self.lastId++})
+                    self.queuedPrints.push({fileName: f, copies: 1, id: self.lastId++})
             } else {
-                    self.queuedPrints.push({fileName: "", printNumber: 1, id: self.lastId++})
+                    self.queuedPrints.push({fileName: "", copies: 1, id: self.lastId++})
             }
         };
 
@@ -105,7 +114,7 @@ $(function() {
                     let last = self.queuedPrints()[l - 1];
                     console.log(last["fileName"]);
                     if (last["fileName"] == "") {
-                        self.queuedPrints.replace(last, {fileName: data["file"], printNumber: last["printNumber"], id: last["id"]})
+                        self.queuedPrints.replace(last, {fileName: data["file"], copies: last["copies"], id: last["id"]})
                         self.clearSelectedFile();
                     }
                 }
