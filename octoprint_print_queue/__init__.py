@@ -3,6 +3,8 @@ from __future__ import absolute_import
 
 import octoprint.plugin
 from octoprint.settings import settings
+from octoprint.server.util.flask import restricted_access
+
 import flask, json
 import os.path
 
@@ -13,7 +15,6 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
     octoprint.plugin.EventHandlerPlugin):
 
     print_queue = []
-    selected_file = ""
     uploads_dir = settings().getBaseFolder("uploads")
 
     # BluePrintPlugin (api requests)
@@ -23,6 +24,7 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
         return flask.jsonify(print_queue=self.print_queue)
 
     @octoprint.plugin.BlueprintPlugin.route("/queue", methods=["POST"])
+    @restricted_access
     def set_queue(self):
         self._logger.info("PQ: received print queue from frontend")
         last_print_queue = self.print_queue[:]
@@ -38,25 +40,17 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
 
         return flask.make_response("POST successful", 200)
 
-    @octoprint.plugin.BlueprintPlugin.route("/addselectedfile", methods=["GET"])
-    def add_selected_file(self):
-        self._logger.info("PQ: adding selected file: " + self.selected_file)
-        self._printer.unselect_file()
-        f = self.selected_file
-        self.selected_file = ""
-
-        return flask.jsonify(filename=f)
-
-    @octoprint.plugin.BlueprintPlugin.route("/clearselectedfile", methods=["POST"])
+    @octoprint.plugin.BlueprintPlugin.route("/clear_selected_file", methods=["POST"])
+    @restricted_access
     def clear_selected_file(self):
         self._logger.info("PQ: clearing selected file")
         self._printer.unselect_file()
-        self.selected_file = ""
 
         return flask.make_response("POST successful", 200)
 
-    @octoprint.plugin.BlueprintPlugin.route("/printcontinuously", methods=["POST"])
-    def print_continuously(self):
+    @octoprint.plugin.BlueprintPlugin.route("/start", methods=["POST"])
+    @restricted_access
+    def start_queue(self):
         self.print_queue = []
         for v in flask.request.form:
             j = json.loads(v)
@@ -117,7 +111,6 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
                 type="file_selected",
                 file=payload["path"]
             ))
-            self.selected_file = payload["path"]
 
         if event == "PrintDone":
             if len(self.print_queue) > 1:

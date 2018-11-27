@@ -11,6 +11,7 @@ $(function() {
 
         self.printerState = parameters[0];
         self.loginState = parameters[1];
+        self.files = parameters[2];
 
         self.queuedPrints = ko.observableArray([]);
         self.lastId = 0; // used to make each queued entry unique
@@ -97,7 +98,7 @@ $(function() {
         self.startQueue = function() {
             self.clearSelectedFile()
             $.ajax({
-                url: "plugin/print_queue/printcontinuously",
+                url: "plugin/print_queue/start",
                 type: "POST",
                 dataType: "json",
                 headers: {
@@ -134,34 +135,23 @@ $(function() {
 
         self.clearSelectedFile = function() {
             $.ajax({
-                url: "plugin/print_queue/clearselectedfile",
+                url: "plugin/print_queue/clear_selected_file",
                 type: "POST",
                 dataType: "json",
                 headers: {
                     "X-Api-Key":UI_API_KEY,
                 }
             });
+            self.files.listHelper.selectNone();
         }
 
         self.addSelectedFile = function() {
-            $.ajax({
-                url: "plugin/print_queue/addselectedfile",
-                type: "GET",
-                dataType: "json",
-                headers: {
-                    "X-Api-Key":UI_API_KEY,
-                },
-                success: self.addFileResponse
-            });
-        }
-
-        self.addFileResponse = function(data) {
-            console.log('PQ: add file');
-            let f = data["filename"]
+            let f = self.files.listHelper.selectedItem();
             if (f) {
-                    self.queuedPrints.push({fileName: f, copies: 1, id: self.lastId++})
+                    self.queuedPrints.push({fileName: f["path"], copies: 1, id: self.lastId++});
+                    self.clearSelectedFile();
             } else {
-                    self.queuedPrints.push({fileName: "", copies: 1, id: self.lastId++})
+                    self.queuedPrints.push({fileName: "", copies: 1, id: self.lastId++});
             }
         };
 
@@ -178,13 +168,16 @@ $(function() {
                     break;
 
                 case "file_selected":
-                    let l = self.queuedPrints().length;
-                    if (l > 0) {
-                        let last = self.queuedPrints()[l - 1];
-                        if (last["fileName"] == "") {
-                            self.queuedPrints.replace(last, {fileName: data["file"], copies: last["copies"], id: last["id"]})
-                            self.clearSelectedFile();
+                    let accepted = false;
+                    for(let i = 0; i < self.queuedPrints().length; i++) {
+                        let print = self.queuedPrints()[i];
+                        if (print["fileName"] == "") {
+                            self.queuedPrints.replace(print, {fileName: data["file"], copies: print["copies"], id: print["id"]})
+                            accepted = true;
                         }
+                    }
+                    if(accepted) {
+                        self.clearSelectedFile();
                     }
                     break;
             }
@@ -200,7 +193,7 @@ $(function() {
         // This is a list of dependencies to inject into the plugin, the order which you request
         // here is the order in which the dependencies will be injected into your view model upon
         // instantiation via the parameters argument
-        ["printerStateViewModel", "loginStateViewModel"],
+        ["printerStateViewModel", "loginStateViewModel", "filesViewModel"],
 
         // Finally, this is the list of selectors for all elements we want this view model to be bound to.
         ["#tab_plugin_print_queue"]
