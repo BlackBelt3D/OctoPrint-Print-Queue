@@ -106,6 +106,17 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
         if event == "ClientOpened":
             self.send_queue()
 
+        if event == "FileAdded":
+            # TODO: add setting for auto queue
+            self.print_queue.append(payload["path"])
+            self.send_queue()
+
+        if event == "FileRemoved":
+            new_queue = [f for f in self.print_queue if f != payload["path"]]
+            if new_queue != self.print_queue:
+                self.print_queue = new_queue
+                self.send_queue()
+
         if event == "FileSelected":
             self._plugin_manager.send_plugin_message(self._identifier, dict(
                 type="file_selected",
