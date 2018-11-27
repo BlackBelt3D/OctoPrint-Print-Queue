@@ -24,12 +24,17 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
 
     @octoprint.plugin.BlueprintPlugin.route("/queue", methods=["POST"])
     def set_queue(self):
-        self._logger.info("PQ: setting queue")
+        self._logger.info("PQ: received print queue from frontend")
+        last_print_queue = self.print_queue[:]
         self.print_queue = []
         for v in flask.request.form:
             j = json.loads(v)
             for p in j:
                 self.print_queue += [p]
+
+        if self.print_queue != last_print_queue:
+            self.send_queue()
+
 
         return flask.make_response("POST successful", 200)
 
@@ -58,11 +63,23 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
             for p in j:
                 self.print_queue += [p]
 
-        f = os.path.join(self.uploads_dir, self.print_queue[0])
-        self._logger.info("PQ: attempting to select and print file: " + f)
-        self._printer.select_file(f, False, True)
-        self.print_queue.pop(0)
+        self.print_from_queue()
+
         return flask.make_response("POST successful", 200)
+
+    def print_from_queue(self):
+        if len(self.print_queue) > 0:
+            f = os.path.join(self.uploads_dir, self.print_queue[0])
+            self._logger.info("PQ: attempting to select and print file: " + f)
+            self._printer.select_file(f, False, True)
+
+
+    def send_queue(self):
+        self._plugin_manager.send_plugin_message(self._identifier, dict(
+            type="set_queue",
+            print_queue=self.print_queue
+        ))
+
 
     # SettingPlugin
     def get_settings_defaults(self):
@@ -92,18 +109,21 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
 
     # Event Handling
     def on_event(self, event, payload):
+        if event == "ClientOpened":
+            self.send_queue()
+
         if event == "FileSelected":
-            self._plugin_manager.send_plugin_message(self._identifier, dict(message="file_selected",file=payload["path"]))
+            self._plugin_manager.send_plugin_message(self._identifier, dict(
+                type="file_selected",
+                file=payload["path"]
+            ))
             self.selected_file = payload["path"]
-        if event == "PrinterStateChanged":
-            state = self._printer.get_state_id()
-            if state  == "OPERATIONAL" and len(self.print_queue) > 0:
-                self._logger.info("selecting next print from queue")
-                self._printer.select_file(os.path.join(self.uploads_dir, self.print_queue[0]), False, True)
+
+        if event == "PrintDone":
+            if len(self.print_queue) > 1:
                 self.print_queue.pop(0)
-            if state == "OFFLINE" or state == "CANCELLING" or state == "CLOSED" or state == "ERROR" or state == "CLOSED_WITH_ERROR":
-                self._logger.info("deleting print queue")
-                self.print_queue = []
+                self.print_from_queue()
+                self.send_queue()
 
         return
 

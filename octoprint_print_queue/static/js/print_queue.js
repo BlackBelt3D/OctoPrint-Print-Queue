@@ -12,6 +12,13 @@ $(function() {
         self.queuedPrints = ko.observableArray([]);
         self.lastId = 0; // used to make each queued entry unique
         self.flatPrintQueue = [];
+        self.inhibitSendingQueue = false;
+
+        self.queuedPrints.subscribe(function(changes) {
+            if(!self.inhibitSendingQueue) {
+                self.checkPrintQueueChanges();
+            }
+        });
 
         self.getPrintQueue = function() {
             $.ajax({
@@ -30,8 +37,9 @@ $(function() {
 
 
         self.setPrintQueueFromData = function(data) {
-            console.log('PQ: received queue: ', data);
-            self.queuedPrints = ko.observableArray([]);
+            console.log('PQ: received queue');
+            self.inhibitSendingQueue = true;
+            self.queuedPrints.removeAll();
             self.lastId = 0;
             let lastFileName = undefined;
             for (let i in data.print_queue) {
@@ -40,12 +48,13 @@ $(function() {
                     lastFileName = fileName;
                     self.queuedPrints.push({fileName: fileName, copies: 1, id: self.lastId++});
                 } else {
-                    let print = self.queuedPrints.pop();
-                    print.copies++;
-                    self.queuedPrints.push(print);
+                    let last = self.queuedPrints.pop();
+                    last.copies++;
+                    self.queuedPrints.push(last);
                 }
             }
             self.flatPrintQueue = self.createFlatPrintQueue();
+            self.inhibitSendingQueue = false;
         }
 
 
@@ -68,7 +77,6 @@ $(function() {
             let printQueue = self.createFlatPrintQueue();
             if (printQueue != self.flatPrintQueue) {
                 self.flatPrintQueue = printQueue;
-                console.log(JSON.stringify(self.createFlatPrintQueue()));
 
                 $.ajax({
                     url: "plugin/print_queue/queue",
@@ -77,15 +85,13 @@ $(function() {
                     headers: {
                         "X-Api-Key":UI_API_KEY,
                     },
-                    data: JSON.stringify(self.createFlatPrintQueue()),
-                    success: self.postResponse
+                    data: JSON.stringify(self.createFlatPrintQueue())
                 });
             }
         }
 
 
-        self.printContinuously = function() {
-            console.log(self.createFlatPrintQueue());
+        self.startQueue = function() {
             $.ajax({
                 url: "plugin/print_queue/printcontinuously",
                 type: "POST",
@@ -93,9 +99,12 @@ $(function() {
                 headers: {
                     "X-Api-Key":UI_API_KEY,
                 },
-                data: JSON.stringify(self.createFlatPrintQueue()),
-                success: self.postResponse
+                data: JSON.stringify(self.createFlatPrintQueue())
             });
+        }
+
+        self.clearQueue = function() {
+            self.queuedPrints.removeAll();
         }
 
         self.moveJobUp = function(data) {
@@ -103,8 +112,6 @@ $(function() {
             if (currentIndex > 0) {
                 let queueArray = self.queuedPrints();
                 self.queuedPrints.splice(currentIndex-1, 2, queueArray[currentIndex], queueArray[currentIndex - 1]);
-
-                self.checkPrintQueueChanges();
             }
         }
 
@@ -113,14 +120,23 @@ $(function() {
             if (currentIndex < self.queuedPrints().length - 1) {
                 let queueArray = self.queuedPrints();
                 self.queuedPrints.splice(currentIndex, 2, queueArray[currentIndex + 1], queueArray[currentIndex]);
-
-                self.checkPrintQueueChanges();
             }
         }
 
         self.removeJob = function(data) {
             self.queuedPrints.remove(data);
-            self.checkPrintQueueChanges();
+        }
+
+
+        self.clearSelectedFile = function() {
+            $.ajax({
+                url: "plugin/print_queue/clearselectedfile",
+                type: "POST",
+                dataType: "json",
+                headers: {
+                    "X-Api-Key":UI_API_KEY,
+                }
+            });
         }
 
         self.addSelectedFile = function() {
@@ -135,43 +151,38 @@ $(function() {
             });
         }
 
-        self.clearSelectedFile = function() {
-            $.ajax({
-                url: "plugin/print_queue/clearselectedfile",
-                type: "POST",
-                dataType: "json",
-                headers: {
-                    "X-Api-Key":UI_API_KEY,
-                },
-                success: self.postResponse
-            });
-        }
-
         self.addFileResponse = function(data) {
             console.log('PQ: add file');
-            console.log(data);
             let f = data["filename"]
             if (f) {
                     self.queuedPrints.push({fileName: f, copies: 1, id: self.lastId++})
             } else {
                     self.queuedPrints.push({fileName: "", copies: 1, id: self.lastId++})
             }
-            self.checkPrintQueueChanges();
         };
 
         self.onDataUpdaterPluginMessage = function(plugin, data) {
             // if the "add file" field is blank and the user loads a new file
             // put it's name into the text field
-            if (plugin == "print_queue" && data["message"] == "file_selected") {
-                let l = self.queuedPrints().length;
-                if (l > 0) {
-                    let last = self.queuedPrints()[l - 1];
-                    console.log(last["fileName"]);
-                    if (last["fileName"] == "") {
-                        self.queuedPrints.replace(last, {fileName: data["file"], copies: last["copies"], id: last["id"]})
-                        self.clearSelectedFile();
+            if (plugin != "print_queue") {
+                return;
+            }
+
+            switch(data["type"]) {
+                case "set_queue":
+                    self.setPrintQueueFromData(data);
+                    break;
+
+                case "file_selected":
+                    let l = self.queuedPrints().length;
+                    if (l > 0) {
+                        let last = self.queuedPrints()[l - 1];
+                        if (last["fileName"] == "") {
+                            self.queuedPrints.replace(last, {fileName: data["file"], copies: last["copies"], id: last["id"]})
+                            self.clearSelectedFile();
+                        }
                     }
-                }
+                    break;
             }
         }
     }
