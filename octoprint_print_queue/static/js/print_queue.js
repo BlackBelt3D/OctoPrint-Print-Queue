@@ -9,6 +9,9 @@ $(function() {
     function PrintQueueViewModel(parameters) {
         var self = this;
 
+        self.printerState = parameters[0];
+        self.loginState = parameters[1];
+
         self.queuedPrints = ko.observableArray([]);
         self.lastId = 0; // used to make each queued entry unique
         self.flatPrintQueue = [];
@@ -92,6 +95,7 @@ $(function() {
 
 
         self.startQueue = function() {
+            self.clearSelectedFile()
             $.ajax({
                 url: "plugin/print_queue/printcontinuously",
                 type: "POST",
@@ -196,7 +200,7 @@ $(function() {
         // This is a list of dependencies to inject into the plugin, the order which you request
         // here is the order in which the dependencies will be injected into your view model upon
         // instantiation via the parameters argument
-        ["settingsViewModel"],
+        ["printerStateViewModel", "loginStateViewModel"],
 
         // Finally, this is the list of selectors for all elements we want this view model to be bound to.
         ["#tab_plugin_print_queue"]

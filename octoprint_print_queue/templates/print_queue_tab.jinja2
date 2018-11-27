@@ -4,40 +4,40 @@
         <div class="span2"><h5>{{ _('Copies') }}</h5></div>
         <div class="span2"><h5>{{ _('Operations') }}</h5></div>
     </div>
-    <div data-bind="sortable: queuedPrints">
-        <div class="row-fluid" style="margin-bottom: 5px; cursor: move">
+    <div data-bind="sortable: { data: queuedPrints, isEnabled: loginState.isUser }">
+        <div class="row-fluid" style="margin-bottom: 5px" data-bind="style: { cursor: $parent.loginState.isUser() ? 'move' : '' }">
             <div class="span8">
                 <div data-bind="text: fileName ? fileName : 'Select a file from the main file list', css: { muted: !fileName } "></div>
             </div>
             <div class="input span2">
-                <input type="number" step="any" min="1" class="input-mini text-right" data-bind="value: copies, event: { change: $parent.checkPrintQueueChanges }">
+                <input type="number" step="any" min="1" class="input-mini text-right" data-bind="value: copies, event: { change: $parent.checkPrintQueueChanges }, enable: $parent.loginState.isUser()">
             </div>
             <div class="span2">
                 <div class="btn-group action-buttons" style="margin-top: 5px;">
-                    <div class="btn btn-mini moveJobUp" data-bind="click: $parent.moveJobUp, css: { disabled: $index() === 0 }" title="Move job up the queue">
+                    <button class="btn btn-mini moveJobUp" data-bind="click: $parent.moveJobUp, enable: $parent.loginState.isUser() && $index() !== 0" title="Move job up the queue">
                         <i class="fa fa-arrow-up"></i>
-                    </div>
-                    <div class="btn btn-mini moveJobDown" data-bind="click: $parent.moveJobDown, css: { disabled: $index() == $parent.queuedPrints().length - 1 }" title="Move job down the queue">
+                    </button>
+                    <button class="btn btn-mini moveJobDown" data-bind="click: $parent.moveJobDown, enable: $parent.loginState.isUser() && $index() !== $parent.queuedPrints().length - 1" title="Move job down the queue">
                         <i class="fa fa-arrow-down"></i>
-                    </div>
-                    <div class="btn btn-mini btn-danger removeJob" data-bind="click: $parent.removeJob" title="Remove job from queue">
+                    </button>
+                    <button class="btn btn-mini btn-danger removeJob" data-bind="click: $parent.removeJob, enable: $parent.loginState.isUser()" title="Remove job from queue">
                         <i class="fa fa-times"></i>
-                    </div>
+                    </button>
                 </div>
             </div>
         </div>
     </div>
     <br/>
-    <div class="row-fluid">
+    <div class="row-fluid" data-bind="css: { visible: false }">
         <div class="span10">
-            <button class="btn btn-primary" data-bind="click: startQueue, css: { disabled: queuedPrints().length === 0 }">
+            <button class="btn btn-primary" data-bind="click: startQueue, enable: queuedPrints().length !== 0 && printerState.isOperational() && loginState.isUser()">
                 <i class="fa fa-print"></i> {{ _('Print queue') }}
             </button>
-            <button class="btn btn-danger" data-bind="click: clearQueue, css: { disabled: queuedPrints().length === 0 }">{{ _('Clear') }}</button>
+            <button class="btn btn-danger" data-bind="click: clearQueue, enable: queuedPrints().length !== 0 && loginState.isUser()">{{ _('Clear') }}</button>
         </div>
 
         <div class="span2">
-            <a title="Add job" class="btn btn-primary" data-bind="click: addSelectedFile"><i class="fa fa-plus"></i></a>
+            <button title="Add job" class="btn btn-primary" data-bind="click: addSelectedFile, enable: loginState.isUser()"><i class="fa fa-plus"></i></button>
         </div>
     </div>
 </form>
