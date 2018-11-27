@@ -7,8 +7,7 @@
     <div data-bind="sortable: queuedPrints">
         <div class="row-fluid" style="margin-bottom: 5px; cursor: move">
             <div class="span8">
-                <input title="i.e. &quot;part.gcode&quot; or &quot;subfolder/part.gcode&quot;" type="text" 
-                    placeholder="Select a file from the main file navigator or enter a file path" class="span12 text-left" data-bind="value: fileName">
+                <div data-bind="text: fileName ? fileName : 'Select a file from the main file list', css: { muted: !fileName } "></div>
             </div>
             <div class="input span2">
                 <input type="number" step="any" min="1" class="input-mini text-right" data-bind="value: copies, event: { change: $parent.checkPrintQueueChanges }">
