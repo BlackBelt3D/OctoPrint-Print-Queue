@@ -24,6 +24,22 @@ $(function() {
             }
         });
 
+
+        self.files.addToPrintQueue = function(data) {
+            self.queuedPrints.push({fileName: data["path"], copies: 1, id: self.lastId++});
+        }
+
+        $(document).ready(function(){
+            let regex = /<div class="btn-group action-buttons">([\s\S]*)<.div>/mi;
+            let template = '<div class="btn btn-mini" data-bind="click: function() { $root.addToPrintQueue($data) }, enable: $root.loginState.isUser(), css: {disabled: !$root.loginState.isUser()}" title="Add to Queue"><i class="fa fa-list"></i></div>';
+
+
+            $("#files_template_machinecode").text(function () {
+                return $(this).text().replace(regex, '<div class="btn-group action-buttons">$1    ' + template + '></div>');
+            });
+        });
+
+
         self.getPrintQueue = function() {
             $.ajax({
                 url: "plugin/print_queue/queue",
@@ -133,28 +149,6 @@ $(function() {
         }
 
 
-        self.clearSelectedFile = function() {
-            $.ajax({
-                url: "plugin/print_queue/clear_selected_file",
-                type: "POST",
-                dataType: "json",
-                headers: {
-                    "X-Api-Key":UI_API_KEY,
-                }
-            });
-            self.files.listHelper.selectNone();
-        }
-
-        self.addSelectedFile = function() {
-            let f = self.files.listHelper.selectedItem();
-            if (f) {
-                    self.queuedPrints.push({fileName: f["path"], copies: 1, id: self.lastId++});
-                    self.clearSelectedFile();
-            } else {
-                    self.queuedPrints.push({fileName: "", copies: 1, id: self.lastId++});
-            }
-        };
-
         self.onDataUpdaterPluginMessage = function(plugin, data) {
             // if the "add file" field is blank and the user loads a new file
             // put it's name into the text field
@@ -165,20 +159,6 @@ $(function() {
             switch(data["type"]) {
                 case "set_queue":
                     self.setPrintQueueFromData(data);
-                    break;
-
-                case "file_selected":
-                    let accepted = false;
-                    for(let i = 0; i < self.queuedPrints().length; i++) {
-                        let print = self.queuedPrints()[i];
-                        if (print["fileName"] == "") {
-                            self.queuedPrints.replace(print, {fileName: data["file"], copies: print["copies"], id: print["id"]})
-                            accepted = true;
-                        }
-                    }
-                    if(accepted) {
-                        self.clearSelectedFile();
-                    }
                     break;
             }
         }
