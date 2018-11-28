@@ -26,6 +26,7 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
     @octoprint.plugin.BlueprintPlugin.route("/queue", methods=["POST"])
     @restricted_access
     def set_queue(self):
+        # TODO: ensure the currently printing file remains on top of the list
         self._logger.info("PQ: received print queue from frontend")
         last_print_queue = self.print_queue[:]
         self.print_queue = []
@@ -93,13 +94,17 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
 
 
     # Hooks
-    def print_completion_script(self, comm, script_type, script_name, *args, **kwargs):
+    def alter_print_completion_script(self, comm_instance, script_type, script_name, *args, **kwargs):
         if script_type == "gcode" and script_name == "afterPrintDone" and len(self.print_queue) > 0:
             prefix = self._settings.get(["bed_clear_script"])
             postfix = None
             return prefix, postfix
         else:
             return None
+
+    def alter_start_and_end_gcode(self, comm_instance, phase, cmd, cmd_type, gcode, subcode=None, tags=None, *args, **kwargs):
+        # TODO: strip start & end code up to settable markers
+        pass
 
     # Event Handling
     def on_event(self, event, payload):
@@ -123,6 +128,10 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
                 file=payload["path"]
             ))
 
+        if event == "PrintStarted":
+            # TODO: check if the print is in the queue
+            pass
+
         if event == "PrintDone":
             if len(self.print_queue) > 1:
                 self.print_queue.pop(0)
@@ -138,5 +147,6 @@ def __plugin_load__():
 
     global __plugin_hooks__
     __plugin_hooks__ = {
-        "octoprint.comm.protocol.scripts": __plugin_implementation__.print_completion_script,
+        "octoprint.comm.protocol.scripts": __plugin_implementation__.alter_print_completion_script,
+        "octoprint.comm.protocol.gcode.queuing": __plugin_implementation__.alter_start_and_end_gcode,
     }
