@@ -30,6 +30,7 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
     def set_queue(self):
         self._logger.info("PQ: received print queue from frontend")
         last_print_queue = self._print_queue[:]
+
         self._print_queue = []
         for v in flask.request.form:
             j = json.loads(v)
@@ -38,12 +39,15 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
 
         if self._printer.get_state_id() in ["PRINTING", "PAUSED"]:
             active_file = self._printer.get_current_job()["file"]["path"]
-            if self._print_queue[0] != active_file:
+            if not self._print_queue or self._print_queue[0] != active_file:
                 try:
                     self._print_queue.remove(active_file)
                 except ValueError:
                     pass
                 self._print_queue.insert(0, active_file)
+                if self._print_queue == last_print_queue:
+                    # force correcting the queue on the originating client
+                    last_print_queue = []
 
         if self._print_queue != last_print_queue:
             self._send_queue_to_clients()
