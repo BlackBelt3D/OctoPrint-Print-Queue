@@ -128,9 +128,10 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
             state = self._printer.get_state_id()
             self._logger.info("printer state: " + state)
             if state  == "OPERATIONAL":
-                if self._print_completed and len(self._print_queue) > 1:
+                if self._print_completed and len(self._print_queue) > 0:
                     self._print_queue.pop(0)
-                    self._print_from_queue()
+                    if len(self._print_queue) > 0:
+                        self._print_from_queue()
                     self._send_queue_to_clients()
 
 
