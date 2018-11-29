@@ -92,10 +92,9 @@ $(function() {
 
 
         self.checkPrintQueueChanges = function() {
-            console.log('PQ: check queue change');
-
             let printQueue = self.createFlatPrintQueue();
             if (printQueue != self.flatPrintQueue) {
+                console.log('PQ: print queue changed');
                 self.flatPrintQueue = printQueue;
 
                 $.ajax({
@@ -105,14 +104,14 @@ $(function() {
                     headers: {
                         "X-Api-Key":UI_API_KEY,
                     },
-                    data: JSON.stringify(self.createFlatPrintQueue())
+                    data: JSON.stringify(self.flatPrintQueue)
                 });
             }
         }
 
 
         self.startQueue = function() {
-            self.clearSelectedFile()
+            self.flatPrintQueue = self.createFlatPrintQueue();
             $.ajax({
                 url: "plugin/print_queue/start",
                 type: "POST",
@@ -120,7 +119,7 @@ $(function() {
                 headers: {
                     "X-Api-Key":UI_API_KEY,
                 },
-                data: JSON.stringify(self.createFlatPrintQueue())
+                data: JSON.stringify(self.flatPrintQueue)
             });
         }
 
