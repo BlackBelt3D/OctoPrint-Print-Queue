@@ -7,7 +7,7 @@
     <div data-bind="sortable: { data: queuedPrints, isEnabled: loginState.isUser }">
         <div class="row-fluid" style="margin-bottom: 5px" data-bind="style: { cursor: $parent.loginState.isUser() ? 'move' : '' }">
             <div class="span8">
-                <div data-bind="text: fileName"></div>
+                <div data-bind="text: fileName, style: { 'font-weight': $index() === 0 && ($parent.printerState.isPrinting() || $parent.printerState.isPaused()) ? 'bold' : 'normal' }"></div>
             </div>
             <div class="input span2">
                 <input type="number" step="any" min="1" class="input-mini text-right" data-bind="value: copies, event: { change: $parent.checkPrintQueueChanges }, enable: $parent.loginState.isUser()">
@@ -30,7 +30,7 @@
     <br/>
     <div class="row-fluid" data-bind="style: { display: loginState.isUser() ? 'block' : 'none' }">
         <div class="span10">
-            <button class="btn btn-primary" data-bind="click: startQueue, enable: queuedPrints().length !== 0 && printerState.isOperational() && loginState.isUser()">
+            <button class="btn btn-primary" data-bind="click: startQueue, enable: queuedPrints().length !== 0 && printerState.isOperational() && loginState.isUser() && !(printerState.isPrinting() || printerState.isPaused())">
                 <i class="fa fa-print"></i> {{ _('Print queue') }}
             </button>
             <button class="btn btn-danger" data-bind="click: clearQueue, enable: queuedPrints().length !== 0 && loginState.isUser()">{{ _('Clear') }}</button>
