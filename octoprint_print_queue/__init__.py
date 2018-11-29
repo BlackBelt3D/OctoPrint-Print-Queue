@@ -23,7 +23,7 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
     @octoprint.plugin.BlueprintPlugin.route("/queue", methods=["GET"])
     def get_queue(self):
         self._logger.info("PQ: getting queue")
-        return flask.jsonify(_print_queue=self._print_queue)
+        return flask.jsonify(print_queue=self._print_queue)
 
     @octoprint.plugin.BlueprintPlugin.route("/queue", methods=["POST"])
     @restricted_access
@@ -66,7 +66,7 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
     def _send_queue_to_clients(self):
         self._plugin_manager.send_plugin_message(self._identifier, dict(
             type="set_queue",
-            _print_queue=self._print_queue
+            print_queue=self._print_queue
         ))
 
 
@@ -83,7 +83,7 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
     # AssetPlugin
     def get_assets(self):
         return dict(
-            js=["js/jquery-ui.min.js", "js/knockout-sortable.js", "js/_print_queue.js"]
+            js=["js/jquery-ui.min.js", "js/knockout-sortable.js", "js/print_queue.js"]
     )
 
 
