@@ -28,18 +28,25 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
     @octoprint.plugin.BlueprintPlugin.route("/queue", methods=["POST"])
     @restricted_access
     def set_queue(self):
-        # TODO: ensure the currently printing file remains on top of the list
         self._logger.info("PQ: received print queue from frontend")
         last_print_queue = self._print_queue[:]
         self._print_queue = []
         for v in flask.request.form:
             j = json.loads(v)
             for p in j:
-                self._print_queue += [p]
+                self._print_queue.append(p)
+
+        if self._printer.get_state_id() in ["PRINTING", "PAUSED"]:
+            active_file = self._printer.get_current_job()["file"]["path"]
+            if self._print_queue[0] != active_file:
+                try:
+                    self._print_queue.remove(active_file)
+                except ValueError:
+                    pass
+                self._print_queue.insert(0, active_file)
 
         if self._print_queue != last_print_queue:
             self._send_queue_to_clients()
-
 
         return flask.make_response("POST successful", 200)
 
@@ -118,8 +125,10 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
 
         if event == "PrintStarted":
             self._print_completed = False
-            # TODO: check if the print is in the queue
 
+            if not self._print_queue or self._print_queue[0] != payload["path"]:
+                self._print_queue.insert(0, payload["path"])
+                self._send_queue_to_clients()
 
         if event == "PrintDone":
             self._print_completed = True
@@ -130,10 +139,10 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
             if state  == "OPERATIONAL":
                 if self._print_completed and len(self._print_queue) > 0:
                     self._print_queue.pop(0)
-                    if len(self._print_queue) > 0:
-                        self._print_from_queue()
                     self._send_queue_to_clients()
 
+                    if len(self._print_queue) > 0:
+                        self._print_from_queue()
 
         return
 
