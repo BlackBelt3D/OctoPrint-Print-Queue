@@ -15,7 +15,9 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
     octoprint.plugin.EventHandlerPlugin):
 
     print_queue = []
+    print_completed = False
     uploads_dir = settings().getBaseFolder("uploads")
+
 
     # BluePrintPlugin (api requests)
     @octoprint.plugin.BlueprintPlugin.route("/queue", methods=["GET"])
@@ -38,14 +40,6 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
         if self.print_queue != last_print_queue:
             self.send_queue()
 
-
-        return flask.make_response("POST successful", 200)
-
-    @octoprint.plugin.BlueprintPlugin.route("/clear_selected_file", methods=["POST"])
-    @restricted_access
-    def clear_selected_file(self):
-        self._logger.info("PQ: clearing selected file")
-        self._printer.unselect_file()
 
         return flask.make_response("POST successful", 200)
 
@@ -122,21 +116,23 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
                 self.print_queue = new_queue
                 self.send_queue()
 
-        if event == "FileSelected":
-            self._plugin_manager.send_plugin_message(self._identifier, dict(
-                type="file_selected",
-                file=payload["path"]
-            ))
-
         if event == "PrintStarted":
+            self.print_completed = False
             # TODO: check if the print is in the queue
-            pass
+
 
         if event == "PrintDone":
-            if len(self.print_queue) > 1:
-                self.print_queue.pop(0)
-                self.print_from_queue()
-                self.send_queue()
+            self.print_completed = True
+
+        if event == "PrinterStateChanged":
+            state = self._printer.get_state_id()
+            self._logger.info("printer state: " + state)
+            if state  == "OPERATIONAL":
+                if self.print_completed and len(self.print_queue) > 1:
+                    self.print_queue.pop(0)
+                    self.print_from_queue()
+                    self.send_queue()
+
 
         return
 
