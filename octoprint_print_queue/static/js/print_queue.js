@@ -12,11 +12,52 @@ $(function() {
         self.printerState = parameters[0];
         self.loginState = parameters[1];
         self.files = parameters[2];
+        self.settings = parameters[3];
 
         self.queuedPrints = ko.observableArray([]);
         self.lastId = 0; // used to make each queued entry unique
         self.flatPrintQueue = [];
         self.inhibitSendingQueue = false;
+
+        self.autoStartQueue = ko.observable(false);//
+        self.autoQueueFiles = ko.observable(false);//self.settings.settings.plugins.print_queue.auto_queue_files);
+
+
+        self.onBeforeBinding = function() {
+            self.autoStartQueue(self.settings.settings.plugins.print_queue.auto_start_queue());
+            self.settings.settings.plugins.print_queue.auto_start_queue.subscribe(function(data) {
+                if (self.autoStartQueue() != data) {
+                    self.autoStartQueue(data);
+                }
+            });
+
+            self.autoStartQueue.subscribe(function(checked) {
+                self.settings.saveData({
+                    plugins: {
+                        print_queue: {
+                            auto_start_queue: checked
+                        }
+                    }
+                });
+            });
+
+            self.autoQueueFiles(self.settings.settings.plugins.print_queue.auto_queue_files());
+            self.settings.settings.plugins.print_queue.auto_queue_files.subscribe(function(data) {
+                if (self.autoQueueFiles() != data) {
+                    self.autoQueueFiles(data);
+                }
+            });
+
+            self.autoQueueFiles.subscribe(function(checked) {
+                self.settings.saveData({
+                    plugins: {
+                        print_queue: {
+                            auto_queue_files: checked
+                        }
+                    }
+                });
+            });
+        }
 
         self.queuedPrints.subscribe(function(changes) {
             if(!self.inhibitSendingQueue) {
@@ -172,7 +213,7 @@ $(function() {
         // This is a list of dependencies to inject into the plugin, the order which you request
         // here is the order in which the dependencies will be injected into your view model upon
         // instantiation via the parameters argument
-        ["printerStateViewModel", "loginStateViewModel", "filesViewModel"],
+        ["printerStateViewModel", "loginStateViewModel", "filesViewModel", "settingsViewModel"],
 
         // Finally, this is the list of selectors for all elements we want this view model to be bound to.
         ["#tab_plugin_print_queue"]

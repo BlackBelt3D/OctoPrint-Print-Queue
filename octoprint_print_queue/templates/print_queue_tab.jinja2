@@ -29,12 +29,30 @@
     </div>
     <br/>
     <div class="row-fluid" data-bind="style: { display: loginState.isUser() ? 'block' : 'none' }">
-        <div class="span10">
-            <button class="btn btn-primary" data-bind="click: startQueue, enable: queuedPrints().length !== 0 && printerState.isOperational() && loginState.isUser() && !(printerState.isPrinting() || printerState.isPaused())">
+        <div class="span12">
+            <button class="btn btn-primary" data-bind="click: startQueue, enable: queuedPrints().length !== 0 && printerState.isOperational() && loginState.isUser() && !(printerState.isPrinting() || printerState.isPaused())" title="Start printing the queued files">
                 <i class="fa fa-print"></i> {{ _('Print queue') }}
             </button>
-            <button class="btn btn-danger" data-bind="click: clearQueue, enable: queuedPrints().length !== 0 && loginState.isUser()">{{ _('Clear') }}</button>
+            <button class="btn btn-danger" data-bind="click: clearQueue, enable: queuedPrints().length !== 0 && loginState.isUser()" title="Empty the queue">
+                {{ _('Clear') }}
+            </button>
         </div>
+    </div>
+    <br/>
+    <div class="control-group">
+        <label class="checkbox">
+            <div title="{{ _('Check this to start printing as soon as the first job is added to the queue.') }}">
+                <input type="checkbox" data-bind="checked: autoStartQueue">{{ _('Start queue automatically') }}
+            </div>
+        </label>
+        <label class="checkbox">
+            <div title="{{ _('Check this to add new files to the queue when they are uploaded.') }}">
+                <input type="checkbox" data-bind="checked: autoQueueFiles"> {{ _('Automatically queue new files') }}
+            </div>
+        </label>
+    </div>
+    <div>
+        <small class="muted">Hint: You can add files to the print queue using the <i class="fa fa-list"></i>-button in the Files-list in the sidebar.</small>
     </div>
 </form>
 

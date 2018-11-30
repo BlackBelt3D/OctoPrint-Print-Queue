@@ -37,7 +37,9 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
             for p in j:
                 self._print_queue.append(p)
 
-        if self._printer.get_state_id() in ["PRINTING", "PAUSED"]:
+        state = self._printer.get_state_id()
+        if state in ["PRINTING", "PAUSED"]:
+            # keep the currently active job on the top of the queue
             active_file = self._printer.get_current_job()["file"]["path"]
             if not self._print_queue or self._print_queue[0] != active_file:
                 try:
@@ -51,6 +53,9 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
 
         if self._print_queue != last_print_queue:
             self._send_queue_to_clients()
+
+        if state  == "OPERATIONAL" and self._settings.get(["auto_start_queue"]):
+            self._print_from_queue()
 
         return flask.make_response("POST successful", 200)
 
@@ -83,7 +88,11 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
 
     # SettingPlugin
     def get_settings_defaults(self):
-        return dict(bed_clear_script="")
+        return dict(
+            bed_clear_script="",
+            auto_start_queue=False,
+            auto_queue_files=True
+        )
 
     # TemplatePlugin
     def get_template_configs(self):
@@ -117,9 +126,9 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
             self._send_queue_to_clients()
 
         if event == "FileAdded":
-            # TODO: add setting for auto queue
-            self._print_queue.append(payload["path"])
-            self._send_queue_to_clients()
+            if self._settings.get(["auto_queue_files"]):
+                self._print_queue.append(payload["path"])
+                self._send_queue_to_clients()
 
         if event == "FileRemoved":
             new_queue = [f for f in self._print_queue if f != payload["path"]]
