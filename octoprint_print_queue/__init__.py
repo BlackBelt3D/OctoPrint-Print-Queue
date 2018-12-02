@@ -159,6 +159,26 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
 
         return
 
+    def get_update_information(self):
+        # Define the configuration for your plugin to use with the Software Update
+        # Plugin here. See https://github.com/foosel/OctoPrint/wiki/Plugin:-Software-Update
+        # for details.
+        return dict(
+            print_queue=dict(
+                displayName="Print Queue",
+                displayVersion=self._plugin_version,
+
+                # version check: github repository
+                type="github_release",
+                user="blackbelt3d",
+                repo="OctoPrint-Print-Queue",
+                current=self._plugin_version,
+
+                # update method: pip
+                pip="https://github.com/blackbelt3d/OctoPrint-Print-Queue/archive/{target_version}.zip"
+            )
+        )
+
 __plugin_name__ = "Print Queue"
 def __plugin_load__():
     global __plugin_implementation__
