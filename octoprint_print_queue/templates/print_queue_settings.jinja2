@@ -3,8 +3,18 @@
     <div class="control-group">
         <label class="control-label">{{ _('After each print is completed, before the next print is started') }}</label>
         <div class="controls">
-            <textarea rows="4" class="block" data-bind="value: settings.plugins.print_queue.bed_clear_script"></textarea>
+            <textarea rows="6" class="block" data-bind="value: settings.plugins.print_queue.bed_clear_script"></textarea>
             <span class="help-inline">{{ _("This script needs to completely clear the print off the bed so that the printer is ready for the next print. Understand that if the bed isn't clear the hotend is going to crash into the previously printed object and quite possibly break your printer. It is highly recommended that you put a pause command (M226, M600, etc.) in the script so you can inspect the bed before resuming and starting the next print.") }}</span>
+        </div>
+        <label class="control-label">{{ _('Strip start of file between files until this line') }}</label>
+        <div class="controls">
+        	<input type="text" class="input-block-level" data-bind="value: settings.plugins.print_queue.strip_start_marker">
+        	<span class="help-inline"></span>
+        </div>
+        <label class="control-label">{{ _('Strip end of file between files from this line') }}</label>
+        <div class="controls">
+        	<input type="text" class="input-block-level" data-bind="value: settings.plugins.print_queue.strip_end_marker">
+            <span class="help-inline">{{ _("These two settings can be used to strip parts of end gcode that would unnecessarily cool down the bed and extruder(s), as well as perform rehoming/releveling between prints. Ideally you would place markers in the start- and end-gcode snippets in your slicer to detect here. The first start gcode and the last end gcode bits of the queue are kept intact.") }}</span>
         </div>
     </div>
 </form>
