@@ -138,9 +138,11 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
 
 
         if self._stripping_start:
+            print("stripped from start: %s" % cmd)
             return None,  # strip this line
 
         if self._stripping_end:
+            print("stripped from end: %s" % cmd)
             return None,  # strip this line
 
         return # leave gcode as is
@@ -214,10 +216,9 @@ class PrintQueuePlugin(octoprint.plugin.TemplatePlugin,
                     self._print_queue.pop(0)
                     self._send_queue_to_clients()
 
-                    if self._strip_start_marker != "":
-                        self._stripping_start = True
-
                     if len(self._print_queue) > 0:
+                        if self._strip_start_marker != "":
+                            self._stripping_start = True
                         self._insert_bed_clear_script = True
                         self._print_from_queue()
 
